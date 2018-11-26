@@ -8,6 +8,10 @@ cmake_minimum_required(VERSION 3.9)
 ##---------------------------------------------------------------------------##
 project(Cabana LANGUAGES CXX VERSION 0.1.0)
 
+include(cmake/bob.cmake)
+bob_begin_package()
+
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
   #release comes with -O3 by default
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
@@ -19,8 +23,25 @@ set(CMAKE_CXX_EXTENSIONS OFF) #...without compiler extensions like gnu++11
 option(CMAKE_VERBOSE_MAKEFILE "Generate verbose Makefiles" OFF)
 include(GNUInstallDirs)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(KOKKOS REQUIRED)
+find_package(Kokkos REQUIRED)
+message(STATUS "Kokkos enabled - Overriding compiler selection for consistency
+with Kokkos install")
+set(CMAKE_CXX_COMPILER ${KokkosCore_CXX_COMPILER})
+set(CMAKE_C_COMPILER ${KokkosCore_C_COMPILER})
+set(CMAKE_FORTRAN_COMPILER ${KokkosCore_FORTRAN_COMPILER})
+message(STATUS "Kokkos CMAKE_CXX_COMPILER ${KokkosCore_CXX_COMPILER}")
+message(STATUS "Kokkos CMAKE_C_COMPILER ${KokkosCore_C_COMPILER}")
+message(STATUS "Kokkos CMAKE_FORTRAN_COMPILER
+${KokkosCore_FORTRAN_COMPILER}")
+
+message(STATUS "Kokkos enabled - Overriding compiler flags for
+consistency with Kokkos install")
+set(CMAKE_CXX_FLAGS ${KokkosCore_CXX_FLAGS})
+set(CMAKE_C_FLAGS ${KokkosCore_C_FLAGS})
+set(CMAKE_FORTRAN_FLAGS ${KokkosCore_FORTRAN_FLAGS})
+message(STATUS "Kokkos CMAKE_CXX_FLAGS ${KokkosCore_CXX_FLAGS}")
+message(STATUS "Kokkos CMAKE_C_FLAGS ${KokkosCore_C_FLAGS}")
+message(STATUS "Kokkos CMAKE_FORTRAN_FLAGS ${KokkosCore_FORTRAN_FLAGS}")
 
 option(Cabana_ENABLE_Serial "Build Cabana with Serial support" ON)
 
@@ -38,21 +59,6 @@ option(Cabana_ENABLE_Cuda "Build Cabana with Cuda support" OFF)
 if( Cabana_ENABLE_Cuda )
   enable_language( CUDA )
 endif()
-
-set(CABANA_SUPPORTED_DEVICES Serial Pthread OpenMP Cuda)
-set(ENABLE_DEVICES)
-foreach(_device ${CABANA_SUPPORTED_DEVICES})
-  if(Cabana_ENABLE_${_device})
-    if(NOT KOKKOS_GMAKE_DEVICES MATCHES ".*${_device}.*")
-      message(FATAL_ERROR "Kokkos built with devices '${KOKKOS_GMAKE_DEVICES}', but Cabana with ${_device} requested.")
-    endif()
-    list(APPEND ENABLE_DEVICES "${_device}")
-  endif()
-endforeach()
-if(NOT ENABLE_DEVICES)
-  message(FATAL_ERROR "NO Cabana backend enabled")
-endif()
-message(STATUS "Enable Devices: ${ENABLE_DEVICES}")
 
 option(Cabana_ENABLE_TESTING "Build tests" OFF)
 if(Cabana_ENABLE_TESTING)
@@ -118,7 +124,19 @@ ELSE()
 ENDIF()
 MESSAGE(STATUS "Cabana Revision = '${Cabana_GIT_COMMIT_HASH}'")
 
+macro(cabana_export_lib target headers)
+  bob_export_target(${target})
+  install(FILES ${headers} DESTINATION include)
+endmacro()
+
 add_subdirectory(core)
+
+# this INTERFACE target bundles all the enabled libraries together
+add_library(cabana INTERFACE)
+target_link_libraries(cabana INTERFACE ${Cabana_EXPORTED_TARGETS})
+cabana_export_lib(cabana "")
 
 configure_file(cmake/Cabana.pc.cmakein Cabana.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Cabana.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+bob_end_package()

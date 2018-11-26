@@ -4,6 +4,7 @@
 add_subdirectory(src)
 add_subdirectory(unit_test)
 add_subdirectory(example)
+bob_end_subdir()
 ##---------------------------------------------------------------------------##
 ## end of core/CMakeLists.txt
 ##---------------------------------------------------------------------------##

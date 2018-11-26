@@ -17,9 +17,16 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CabanaCore_config.hpp DESTINATION ${CM
 #-----------------------------------------------------------------------------
 
 add_library(cabanacore ${SOURCES} ${SOURCES} ${SOURCES_IMPL})
-target_include_directories(cabanacore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(cabanacore Kokkos::kokkos)
-if(Cabana_ENABLE_MPI)
-  target_link_libraries(cabanacore MPI::MPI_CXX)
-endif()
-install(TARGETS cabanacore LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+target_include_directories(cabanacore PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_include_directories(cabanacore PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+message(STATUS "Kokkos_INCLUDE_DIRS ${Kokkos_INCLUDE_DIRS}")
+target_include_directories(cabanacore INTERFACE ${Kokkos_INCLUDE_DIRS})
+target_link_libraries(cabanacore PUBLIC ${Kokkos_LIBRARIES})
+
+cabana_export_lib(cabanacore "${HEADERS_PUBLIC}")
+
+bob_end_subdir()
